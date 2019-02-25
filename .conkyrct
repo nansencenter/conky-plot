@@ -31,7 +31,7 @@ conky.config = {
     net_avg_samples = 10,
     out_to_console = false,
     update_interval = 60,
-    append_file = '/home/antonk/conky.txt'
+    append_file = 'conky.txt'
 }
 
 conky.text = [[
