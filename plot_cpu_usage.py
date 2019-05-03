@@ -11,7 +11,14 @@ parser = argparse.ArgumentParser(description="Plot CPU usage, frequency and temp
 parser.add_argument('-n', '--hours', type=float, default=2, help='Show plots for the last <n> hours')
 parser.add_argument('-w', '--window', type=int, default=3, help='Sliding average over <w> minutes')
 parser.add_argument('-s', '--step', type=int, default=1, help='Plot each <s> record')
+parser.add_argument('-b', '--begin', type=str, default='', help='Begin plot at <b> (%Y-%m-%d %H:%M:%S) time. Don\'t update.')
 args = parser.parse_args(sys.argv[1:])
+
+try:
+    begin = dt.datetime.strptime(args.begin, '%Y-%m-%dT%H:%M:%S')
+    print('Begin:', begin)
+except ValueError:
+    begin = None
 
 cpus = 32
 temps = 4 
@@ -38,14 +45,19 @@ while True:
          plot.clear()
     df = pd.read_csv(ifile, sep=" ", header=None, parse_dates={'time': [0,1]}, names=csv_names).set_index('time')
     last_recs = df.index > (dt.datetime.now() - dt.timedelta(hours=args.hours))
+    if begin:
+        last_recs = (df.index > begin) * (df.index < (begin + dt.timedelta(hours=args.hours)))
     df = df[last_recs].rolling(args.window).median()[::args.step]
 
     plots = []
     for l, n, a in zip(labels, names, axes):
         plots.append(df[n].plot(ax=a, **plot_style))
         plots.append(df[n].mean(axis=1).plot(ax=a, legend=False, ls='-', marker='.', color='k'))
+        plots.append(df[n].quantile(0.8, axis=1).plot(ax=a, legend=False, ls='-', color='#888888'))
         plots[-1].set_ylabel(l)
 
     plt.pause(10)
+    if begin:
+        break
 
 plt.show()
